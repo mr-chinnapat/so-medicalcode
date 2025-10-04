@@ -1,10 +1,9 @@
-import os
 """
 Flask Backend API for ICD-10 Analyzer
 pip install flask flask-cors google-generativeai pillow
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import google.generativeai as genai
 from PIL import Image
@@ -12,7 +11,7 @@ import os
 import tempfile
 import logging
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.')
 CORS(app)
 
 # Logging
@@ -33,6 +32,10 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
