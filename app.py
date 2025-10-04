@@ -159,12 +159,5 @@ REASON: <เหตุผลสั้นๆ>
 
 
 if __name__ == '__main__':
-    print("="*60)
-    print("ICD-10 Analyzer Backend Server")
-    print("="*60)
-    print(f"GEMINI_API_KEY: {'✓ Set' if api_key else '✗ Not set'}")
-    print(f"Server: http://localhost:5000")
-    print("="*60)
-    
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', debug=True, port=port)
+    app.run(host='0.0.0.0', port=port)
