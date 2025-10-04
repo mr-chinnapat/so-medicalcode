@@ -1,3 +1,4 @@
+import os
 """
 Flask Backend API for ICD-10 Analyzer
 pip install flask flask-cors google-generativeai pillow
@@ -156,6 +157,7 @@ REASON: <เหตุผลสั้นๆ>
             except:
                 pass
 
+
 if __name__ == '__main__':
     print("="*60)
     print("ICD-10 Analyzer Backend Server")
@@ -164,4 +166,5 @@ if __name__ == '__main__':
     print(f"Server: http://localhost:5000")
     print("="*60)
     
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', debug=True, port=port)
