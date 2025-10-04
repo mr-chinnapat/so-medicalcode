@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+.env
+medical_gemini_api.py
+medical_vertex.py
+medical_qwery.py
+medical_medgema_api.py
+medical_medical.py

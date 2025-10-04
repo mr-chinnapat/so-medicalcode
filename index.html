@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICD-10 AI Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animated {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 103, 103, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 20%, rgba(103, 232, 249, 0.3) 0%, transparent 50%);
+            filter: blur(100px);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-30px); }
+        }
+
+        .container {
+            position: relative;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -2px;
+        }
+
+        .subtitle {
+            color: #8b8b9a;
+            font-size: 1.1rem;
+        }
+
+        /* Glass cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 968px) {
+            .grid { grid-template-columns: 1fr; }
+            h1 { font-size: 2.5rem; }
+        }
+
+        /* Upload zone */
+        .upload-zone {
+            position: relative;
+            border: 3px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            padding: 80px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(102, 126, 234, 0.03);
+        }
+
+        .upload-zone:hover {
+            border-color: rgba(102, 126, 234, 0.6);
+            background: rgba(102, 126, 234, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.15);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Image preview */
+        .preview-container {
+            position: relative;
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .preview-container.active { display: block; }
+
+        .preview-image {
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(239, 68, 68, 0.9);
+            backdrop-filter: blur(10px);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: rgb(239, 68, 68);
+            transform: scale(1.1);
+        }
+
+        /* Button */
+        .analyze-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analyze-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .analyze-btn:hover::before { left: 100%; }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .analyze-btn:disabled:hover { box-shadow: none; }
+
+        .clear-btn {
+            width: 100%;
+            padding: 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+            border-radius: 16px;
+            color: #ef4444;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 16px;
+        }
+
+        .clear-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* Loading */
+        .loading-state {
+            display: none;
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .loading-state.active { display: block; }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results */
+        .results-container {
+            display: none;
+        }
+
+        .results-container.active { display: block; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state.hidden { display: none; }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #e5e7eb;
+        }
+
+        .findings-box {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            white-space: pre-line;
+        }
+
+        /* ICD Code cards */
+        .icd-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            animation: slideIn 0.4s ease;
+        }
+
+        .icd-card:hover {
+            transform: translateX(8px);
+            border-color: rgba(102, 126, 234, 0.6);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icd-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: 700;
+            margin-right: 12px;
+            font-size: 0.9rem;
+        }
+
+        .icd-code {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .icd-diagnosis {
+            font-size: 1.1rem;
+            color: #e5e7eb;
+            margin-bottom: 12px;
+        }
+
+        .icd-reason {
+            color: #9ca3af;
+            font-size: 0.9rem;
+            padding-left: 44px;
+        }
+
+        /* Smooth scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #1a1a24; }
+        ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: #764ba2; }
+    </style>
+</head>
+<body>
+    <div class="bg-animated"></div>
+    
+    <div class="container">
+        <header>
+            <h1>ICD-10 AI Analyzer</h1>
+            <p class="subtitle">Medical Document Analysis powered by Mister.Chin (Chinnapat Jadcharoen)</p>
+        </header>
+
+        <div class="grid">
+            <!-- Upload Panel -->
+            <div class="glass-card">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📋</div>
+                    <h3 style="font-size: 1.2rem; margin-bottom: 8px;">Upload Medical Document</h3>
+                    <p style="color: #8b8b9a;">Drag & drop or click to browse</p>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+
+                <div class="preview-container" id="previewContainer">
+                    <img id="imagePreview" class="preview-image">
+                    <button class="remove-btn" id="removeBtn">✕</button>
+                </div>
+
+                <button class="analyze-btn" id="analyzeBtn" disabled>
+                    Analyze ICD-10
+                </button>
+
+                <button class="clear-btn" id="clearBtn" style="display: none;">
+                    Clear & Start New
+                </button>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="glass-card">
+                <div class="empty-state" id="emptyState">
+                    <div style="font-size: 4rem; margin-bottom: 16px;">🔍</div>
+                    <p>Upload an image to start analysis</p>
+                </div>
+
+                <div class="loading-state" id="loadingState">
+                    <div class="spinner"></div>
+                    <p style="color: #8b8b9a;">Analyzing document...</p>
+                </div>
+
+                <div class="results-container" id="resultsContainer">
+                    <h3 class="section-title">Medical Findings</h3>
+                    <div class="findings-box" id="findings"></div>
+
+                    <h3 class="section-title">ICD-10 Codes</h3>
+                    <div id="icdCodes"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const removeBtn = document.getElementById('removeBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const findings = document.getElementById('findings');
+        const icdCodes = document.getElementById('icdCodes');
+        const clearBtn = document.getElementById('clearBtn');
+
+        let selectedFile = null;
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                previewContainer.classList.add('active');
+                uploadZone.style.display = 'none';
+                analyzeBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        removeBtn.addEventListener('click', () => {
+            selectedFile = null;
+            previewContainer.classList.remove('active');
+            uploadZone.style.display = 'block';
+            analyzeBtn.disabled = true;
+            fileInput.value = '';
+            resultsContainer.classList.remove('active');
+            emptyState.classList.remove('hidden');
+            clearBtn.style.display = 'none';
+        });
+
+        clearBtn.addEventListener('click', () => {
+            selectedFile = null;
+            previewContainer.classList.remove('active');
+            uploadZone.style.display = 'block';
+            analyzeBtn.disabled = true;
+            fileInput.value = '';
+            resultsContainer.classList.remove('active');
+            emptyState.classList.remove('hidden');
+            clearBtn.style.display = 'none';
+        });
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            loadingState.classList.add('active');
+            emptyState.classList.add('hidden');
+            resultsContainer.classList.remove('active');
+            analyzeBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                const response = await fetch('http://127.0.0.1:5000/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    findings.textContent = data.findings;
+
+                    icdCodes.innerHTML = '';
+                    data.icd_codes.forEach((code, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'icd-card';
+                        card.style.animationDelay = `${index * 0.1}s`;
+                        card.innerHTML = `
+                            <div style="display: flex; align-items: flex-start;">
+                                <span class="icd-number">${index + 1}</span>
+                                <div style="flex: 1;">
+                                    <div class="icd-code">${code.code}</div>
+                                    <div class="icd-diagnosis">${code.diagnosis}</div>
+                                    <div class="icd-reason">${code.reason}</div>
+                                </div>
+                            </div>
+                        `;
+                        icdCodes.appendChild(card);
+                    });
+
+                    loadingState.classList.remove('active');
+                    resultsContainer.classList.add('active');
+                    clearBtn.style.display = 'block';
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                loadingState.classList.remove('active');
+                emptyState.classList.remove('hidden');
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
